@@ -2,11 +2,11 @@ const db = require('../models/bd.fernando');
 
 const getCronTasks = async (req, res) => {
     try {
-        const [tareas] = await db.query(
-            `SELECT 
+        const [tareas] = await db.query(`
+            SELECT 
                 DATABASE() AS base_de_datos,
-                name, 
-                status, 
+                name,
+                status,
                 frequency,
                 FROM_UNIXTIME(laststart) AS laststart,
                 FROM_UNIXTIME(lastend) AS lastend,
@@ -15,18 +15,23 @@ const getCronTasks = async (req, res) => {
                     THEN (lastend - laststart)
                     ELSE NULL
                 END AS duracion_segundos
-             FROM vtiger_cron_task
-             WHERE name IN ('Workflow', 'ScheduleReports')`
-        );
+            FROM vtiger_cron_task
+            WHERE name IN ('Workflow', 'ScheduleReports')
+        `);
+
+        console.log("Tareas obtenidas:", tareas);
 
         return res.status(200).json({
             mensaje: "Consulta exitosa",
-            tareas
+            tareas: tareas
         });
+
     } catch (error) {
-        console.error('ERROR en getCronTasks:', error);
+        console.error("ERROR en getCronTasks:", error);
+
         return res.status(500).json({
-            mensaje: 'Error interno del servidor'
+            mensaje: "Error interno del servidor",
+            error: error.message
         });
     }
 };
