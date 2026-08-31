@@ -3,8 +3,12 @@ const db = require('../models/bd.fernando');
 const getCronTasks = async (req, res) => {
     try {
         const [tareas] = await db.query(
-            `SELECT  name, status, frequency,
-            FROM_UNIXTIME(laststart) AS laststart,
+            `SELECT 
+                DATABASE() AS base_de_datos,
+                name, 
+                status, 
+                frequency,
+                FROM_UNIXTIME(laststart) AS laststart,
                 FROM_UNIXTIME(lastend) AS lastend,
                 CASE
                     WHEN laststart IS NOT NULL AND lastend IS NOT NULL
