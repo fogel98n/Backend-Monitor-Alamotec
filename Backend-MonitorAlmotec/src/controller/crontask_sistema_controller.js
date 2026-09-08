@@ -14,38 +14,52 @@ const getCronTaskPorSistema = async (req, res) => {
             return res.status(404).json({ mensaje: 'Sistema no encontrado' });
         }
         const sistema = sistemasRows[0];
-        const pool = getPoolSistema(sistema);
 
-        const [tareas] = await pool.query(
-            `SELECT
-                id,
-                name,
-                status,
-                frequency,
-                FROM_UNIXTIME(laststart) AS laststart,
-                FROM_UNIXTIME(lastend) AS lastend,
-                CASE
-                    WHEN laststart IS NOT NULL AND lastend IS NOT NULL
-                    THEN (lastend - laststart)
-                    ELSE NULL
-                END AS duracion_segundos
-             FROM vtiger_cron_task
-             WHERE name IN ('Workflow', 'ScheduleReports')`
-        );
+        try {
+            const pool = getPoolSistema(sistema);
 
-        const caidos = tareas.filter(t => t.status === 2);
-        if (caidos.length > 0) {
-            enviarAlertaCronCaido(sistema.nombre, caidos).catch(err =>
-                console.error('Error enviando correo de alerta:', err)
+            const [tareas] = await pool.query(
+                ` SELECT
+        id,
+        name,
+        status,
+        frequency,
+        FROM_UNIXTIME(laststart) AS laststart,
+        FROM_UNIXTIME(lastend) AS lastend,
+        CASE
+            WHEN laststart IS NOT NULL
+                 AND lastend IS NOT NULL
+            THEN CAST(lastend AS SIGNED) - CAST(laststart AS SIGNED)
+            ELSE NULL
+        END AS duracion_segundos
+    FROM vtiger_cron_task
+    WHERE name IN ('Workflow', 'ScheduleReports')`
             );
-        }
 
-        return res.status(200).json({
-            mensaje: 'Consulta exitosa',
-            sistema: sistema.nombre,
-            baseDeDatos: sistema.base_datos,
-            tareas
-        });
+            const caidos = tareas.filter(t => t.status === 2);
+            if (caidos.length > 0) {
+                enviarAlertaCronCaido(sistema.nombre, caidos).catch(err =>
+                    console.error('Error enviando correo de alerta:', err)
+                );
+            }
+
+            return res.status(200).json({
+                mensaje: 'Consulta exitosa',
+                sistema: sistema.nombre,
+                baseDeDatos: sistema.base_datos,
+                tareas
+            });
+        } catch (dbError) {
+            // Este sistema en particular no responde: lo reportamos SIN tronar el resto
+            console.error(`ERROR conectando al sistema ${sistema.nombre}:`, dbError.message);
+            return res.status(200).json({
+                mensaje: 'Error de conexion en este sistema',
+                sistema: sistema.nombre,
+                baseDeDatos: sistema.base_datos,
+                tareas: [],
+                error: dbError.sqlMessage || dbError.message || 'No se pudo conectar a la base de datos'
+            });
+        }
     } catch (error) {
         console.error('ERROR en getCronTaskPorSistema:', error);
         return res.status(500).json({ mensaje: 'Error interno del servidor' });
@@ -82,4 +96,29 @@ const actualizarStatusCronTask = async (req, res) => {
     }
 };
 
-module.exports = { getCronTaskPorSistema, actualizarStatusCronTask };
+const resetTimestampCronTask = async (req, res) => {
+    try {
+        const { id, taskId } = req.params;
+
+        const [sistemasRows] = await dbUsuarios.query(
+            `SELECT id, host, usuario, password, base_datos, puerto FROM sistemas WHERE id = ?`,
+            [id]
+        );
+        if (sistemasRows.length === 0) {
+            return res.status(404).json({ mensaje: 'Sistema no encontrado' });
+        }
+        const pool = getPoolSistema(sistemasRows[0]);
+
+        await pool.query(
+            `UPDATE vtiger_cron_task SET laststart = 0, lastend = 0 WHERE id = ?`,
+            [taskId]
+        );
+
+        return res.status(200).json({ mensaje: 'Timestamp reiniciado correctamente' });
+    } catch (error) {
+        console.error('ERROR en resetTimestampCronTask:', error);
+        return res.status(500).json({ mensaje: 'Error interno del servidor' });
+    }
+};
+
+module.exports = { getCronTaskPorSistema, actualizarStatusCronTask, resetTimestampCronTask };
