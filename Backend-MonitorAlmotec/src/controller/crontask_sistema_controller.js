@@ -34,6 +34,7 @@ const getCronTaskPorSistema = async (req, res) => {
         END AS duracion_segundos
     FROM vtiger_cron_task
     WHERE name IN ('Workflow', 'ScheduleReports')`
+    
             );
 
             const caidos = tareas.filter(t => t.status === 2);
