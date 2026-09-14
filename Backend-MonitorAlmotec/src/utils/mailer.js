@@ -23,4 +23,20 @@ const enviarAlertaCronCaido = async (nombreSistema, tareasCaidas) => {
     });
 };
 
-module.exports = { enviarAlertaCronCaido };
+const enviarAlertaTareaLenta = async (nombreSistema, tareasLentas) => {
+    const listaHtml = tareasLentas
+        .map(t => {
+            const minutos = Math.floor((Math.floor(Date.now() / 1000) - t.laststart) / 60);
+            return `<li>${t.name} - corriendo hace ${minutos} minutos sin terminar</li>`;
+        })
+        .join('');
+
+    await transporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to: process.env.ALERTA_EMAIL_TO,
+        subject: `Tarea sin terminar hace mas de 30 min en ${nombreSistema}`,
+        html: `<p>La(s) siguiente(s) tarea(s) llevan corriendo mas de 30 minutos sin marcar fin en <strong>${nombreSistema}</strong>:</p><ul>${listaHtml}</ul>`
+    });
+};
+
+module.exports = { enviarAlertaCronCaido, enviarAlertaTareaLenta };

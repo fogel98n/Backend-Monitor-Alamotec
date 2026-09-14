@@ -19,22 +19,20 @@ const getCronTaskPorSistema = async (req, res) => {
             const pool = getPoolSistema(sistema);
 
             const [tareas] = await pool.query(
-                ` SELECT
-        id,
-        name,
-        status,
-        frequency,
-        FROM_UNIXTIME(laststart) AS laststart,
-        FROM_UNIXTIME(lastend) AS lastend,
-        CASE
-            WHEN laststart IS NOT NULL
-                 AND lastend IS NOT NULL
-            THEN CAST(lastend AS SIGNED) - CAST(laststart AS SIGNED)
-            ELSE NULL
-        END AS duracion_segundos
-    FROM vtiger_cron_task
-    WHERE name IN ('Workflow', 'ScheduleReports')`
-    
+                `SELECT
+                    id,
+                    name,
+                    status,
+                    frequency,
+                    CASE WHEN laststart > 0 THEN laststart ELSE NULL END AS laststart,
+                    CASE WHEN lastend > 0 THEN lastend ELSE NULL END AS lastend,
+                    CASE
+                        WHEN laststart > 0 AND lastend > 0 AND lastend >= laststart
+                        THEN (lastend - laststart)
+                        ELSE NULL
+                    END AS duracion_segundos
+                 FROM vtiger_cron_task
+                 WHERE name IN ('Workflow', 'ScheduleReports')`
             );
 
             const caidos = tareas.filter(t => t.status === 2);
@@ -51,7 +49,6 @@ const getCronTaskPorSistema = async (req, res) => {
                 tareas
             });
         } catch (dbError) {
-            // Este sistema en particular no responde: lo reportamos SIN tronar el resto
             console.error(`ERROR conectando al sistema ${sistema.nombre}:`, dbError.message);
             return res.status(200).json({
                 mensaje: 'Error de conexion en este sistema',
