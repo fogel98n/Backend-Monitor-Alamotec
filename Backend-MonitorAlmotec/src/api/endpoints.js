@@ -9,6 +9,7 @@ router.post("/login",logincontroller.login)
 
 router.get("/sistemas",sistemascontroller.getSistemas)
 router.post("/sistemas",sistemascontroller.crearSistema)
+router.get("/sistemas/:id",sistemascontroller.obtenerSistemaCompleto)
 router.put("/sistemas/:id",sistemascontroller.actualizarSistema)
 router.delete("/sistemas/:id",sistemascontroller.eliminarSistema)
 
@@ -16,5 +17,6 @@ router.get("/sistemas/:id/crontask",crontasksistemacontroller.getCronTaskPorSist
 router.patch("/sistemas/:id/crontask/:taskId",crontasksistemacontroller.actualizarStatusCronTask)
 router.patch("/sistemas/:id/crontask/:taskId/reset",crontasksistemacontroller.resetTimestampCronTask)
 router.post("/sistemas/:id/reset",resetcontroller.ejecutarReset)
+router.patch("/sistemas/:id/mover",sistemascontroller.moverSistema)
 
 module.exports=router
