@@ -27,30 +27,27 @@ const obtenerTareasConEjecucionMayorOIgualHora = (tareas, now = Math.floor(Date.
 
 const construirResumenSistemasCaidos = (sistemasConProblemas, now = Math.floor(Date.now() / 1000)) => {
     if (!Array.isArray(sistemasConProblemas) || sistemasConProblemas.length === 0) {
-        return '<p>No se detectaron sistemas con tareas caidas o ejecutandose por mas de 1 hora.</p>';
+        return '<p>No se detectaron sistemas con tareas ejecutandose por mas de 30 minutos.</p>';
     }
 
-    const itemsHtml = sistemasConProblemas.map(({ nombreSistema, tareas }) => {
-        const tareasHtml = tareas
-            .map(t => {
-                const minutos = calcularDuracionEnMinutos(t.laststart, now);
-                const estado = Number(t.status) === 2 ? 'caida' : `ejecutando hace ${minutos} minutos`;
-                return `<li><strong>${t.name}</strong> - ${estado}</li>`;
-            })
-            .join('');
-
-        return `
-            <div style="margin-bottom: 18px;">
-                <h3>${nombreSistema}</h3>
-                <ul>${tareasHtml}</ul>
-            </div>
-        `;
-    }).join('');
+    const filasHtml = sistemasConProblemas.flatMap(({ nombreSistema, tareas }) =>
+        tareas.map(t => {
+            const minutos = calcularDuracionEnMinutos(t.laststart, now);
+            return `<tr><td>${nombreSistema}</td><td>${t.name}</td><td>${minutos} minutos</td></tr>`;
+        })
+    ).join('');
 
     return `
-        <p>Se detectaron tareas con ejecucion prolongada o caidas en los sistemas monitoreados.</p>
+        <p>Se detectaron tareas con ejecucion prolongada en los sistemas monitoreados.</p>
         <p>Umbral actual: ${UMBRAL_MINUTOS} minutos.</p>
-${itemsHtml}
+        <table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse;">
+            <thead>
+                <tr><th>Sistema</th><th>Tarea</th><th>Tiempo ejecutando</th></tr>
+            </thead>
+            <tbody>
+                ${filasHtml}
+            </tbody>
+        </table>
     `;
 };
 
