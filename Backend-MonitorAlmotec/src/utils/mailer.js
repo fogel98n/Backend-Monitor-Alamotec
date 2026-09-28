@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-const UMBRAL_MINUTOS = 60;
+const UMBRAL_MINUTOS = 30;
 const UMBRAL_SEGUNDOS = UMBRAL_MINUTOS * 60;
 
 const transporter = nodemailer.createTransport({
@@ -21,9 +21,7 @@ const calcularDuracionEnMinutos = (laststart, now = Math.floor(Date.now() / 1000
 const obtenerTareasConEjecucionMayorOIgualHora = (tareas, now = Math.floor(Date.now() / 1000)) => {
     return (tareas || []).filter(t => {
         const duracionMinutos = calcularDuracionEnMinutos(t.laststart, now);
-        const ejecutaMasDeHora = Number(t.laststart) > 0 && duracionMinutos >= UMBRAL_MINUTOS;
-        const estaCaida = Number(t.status) === 2;
-        return ejecutaMasDeHora || estaCaida;
+        return Number(t.laststart) > 0 && duracionMinutos >= UMBRAL_MINUTOS;
     });
 };
 
@@ -52,7 +50,7 @@ const construirResumenSistemasCaidos = (sistemasConProblemas, now = Math.floor(D
     return `
         <p>Se detectaron tareas con ejecucion prolongada o caidas en los sistemas monitoreados.</p>
         <p>Umbral actual: ${UMBRAL_MINUTOS} minutos.</p>
-        ${itemsHtml}
+${itemsHtml}
     `;
 };
 
